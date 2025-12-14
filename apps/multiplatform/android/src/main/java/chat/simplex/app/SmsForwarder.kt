@@ -66,6 +66,11 @@ object SmsForwarder {
   private fun findChatByContactLink(chats: List<Chat>, contactLink: String): Chat? =
     chats.firstOrNull { chat ->
       val chatInfo = chat.chatInfo
-      chatInfo is chat.simplex.common.model.ChatInfo.Direct && chatInfo.contact.contactLink == contactLink
+      if (chatInfo !is chat.simplex.common.model.ChatInfo.Direct) return@firstOrNull false
+
+      val linkMatches = chatInfo.contact.contactLink == contactLink
+      val incognitoIdMatches = chatInfo.id == contactLink && chatInfo.contact.contactConnIncognito
+
+      linkMatches || incognitoIdMatches
     }
 }
