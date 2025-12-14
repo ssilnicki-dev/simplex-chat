@@ -9,6 +9,7 @@ import chat.simplex.common.platform.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 object SmsForwarder {
   private const val TAG = "SmsBridge"
@@ -24,7 +25,9 @@ object SmsForwarder {
 
     CoroutineScope(Dispatchers.Default).launch {
       try {
-        val targetChat = findChatByContactLink(chatModel.chats.value, forwardAddress)
+        SimplexService.scheduleStart(app)
+
+        val targetChat = findChatByContactLink(ensureChatsLoaded(chatModel), forwardAddress)
         if (targetChat == null) {
           Log.w(TAG, "No chat found for configured SMS forward address: $forwardAddress")
           return@launch
@@ -43,6 +46,20 @@ object SmsForwarder {
       } catch (e: Exception) {
         Log.e(TAG, "Failed to forward SMS: ${e.message ?: "unknown error"}")
       }
+    }
+  }
+
+  private suspend fun ensureChatsLoaded(chatModel: chat.simplex.common.model.ChatModel): List<Chat> {
+    val cached = chatModel.chats.value
+    if (cached.isNotEmpty()) return cached
+
+    return runCatching {
+      val refreshed = ChatController.apiGetChats(chatModel.remoteHostId())
+      withContext(Dispatchers.Main) { chatModel.chatsContext.updateChats(refreshed) }
+      refreshed
+    }.getOrElse {
+      Log.w(TAG, "Failed to refresh chats for SMS forwarding: ${it.message}")
+      cached
     }
   }
 
