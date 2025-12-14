@@ -42,6 +42,9 @@ android {
             manifestPlaceholders["app_name"] = rootProject.extra["app.name"] as String
             // Provider can"t be the same for different apps on the same device
             manifestPlaceholders["provider_authorities"] = "chat.simplex.app${rootProject.extra["application_id.suffix"]}.provider"
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
         release {
             isMinifyEnabled = false
@@ -111,17 +114,16 @@ android {
     )
     ndkVersion = "23.1.7779620"
     if (isBundle) {
-        defaultConfig.ndk.abiFilters("arm64-v8a", "armeabi-v7a")
+        defaultConfig.ndk.abiFilters("arm64-v8a")
     } else {
         splits {
             abi {
                 isEnable = true
                 reset()
                 if (isRelease) {
-                    include("arm64-v8a", "armeabi-v7a")
+                    include("arm64-v8a")
                 } else {
-                    include("arm64-v8a", "armeabi-v7a")
-                    isUniversalApk = false
+                    include("arm64-v8a")
                 }
             }
         }
