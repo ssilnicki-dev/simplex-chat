@@ -3799,6 +3799,10 @@ sealed class CC {
       val ttlStr = if (ttl != null) "$ttl" else "default"
       "/_send ${chatRef(type, id, scope)} live=${onOff(live)} ttl=${ttlStr} json $msgs"
     }
+    is ApiSendMessagesToAddress -> {
+      val msgs = json.encodeToString(composedMessages)
+      "/_send address $address json $msgs"
+    }
     is ApiCreateChatTag -> "/_create tag ${json.encodeToString(tag)}"
     is ApiSetChatTags -> "/_tags ${chatRef(type, id, scope = null)} ${tagIds.joinToString(",")}"
     is ApiDeleteChatTag -> "/_delete tag $tagId"
@@ -3982,6 +3986,7 @@ sealed class CC {
     is ApiGetChat -> "apiGetChat"
     is ApiGetChatItemInfo -> "apiGetChatItemInfo"
     is ApiSendMessages -> "apiSendMessages"
+    is ApiSendMessagesToAddress -> "apiSendMessagesToAddress"
     is ApiCreateChatTag -> "apiCreateChatTag"
     is ApiSetChatTags -> "apiSetChatTags"
     is ApiDeleteChatTag -> "apiDeleteChatTag"
