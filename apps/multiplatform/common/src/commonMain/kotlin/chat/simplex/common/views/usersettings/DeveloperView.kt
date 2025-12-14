@@ -109,8 +109,9 @@ private fun SmsForwardAddressSetting(m: ChatModel) {
         contact?.contactConnIncognito == true -> directChat.id
         else -> null
       }
-      if (!optionAddress.isNullOrBlank() && contact?.displayName !in excludedContactNames) {
-        options.add(optionAddress to contact.displayName)
+      val displayName = contact?.displayName
+      if (!optionAddress.isNullOrBlank() && displayName != null && displayName !in excludedContactNames) {
+        options.add(optionAddress to displayName)
       }
     }
 
