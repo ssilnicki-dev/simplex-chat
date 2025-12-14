@@ -99,11 +99,12 @@ private fun SmsForwardAddressSetting(m: ChatModel) {
       options.add(connLink.connFullLink to "${generalGetString(MR.strings.sms_forward_address_profile)} • $displayLink")
     }
 
+    val excludedContactNames = setOf("SimpleX Status", "Ask SimpleX Team")
     m.chats.value?.forEach { chat ->
       val contact = (chat.chatInfo as? ChatInfo.Direct)?.contact
       val contactLink = contact?.contactLink
-      if (!contactLink.isNullOrBlank()) {
-        options.add(contactLink to "${contact.displayName} • $contactLink")
+      if (!contactLink.isNullOrBlank() && contact?.displayName !in excludedContactNames) {
+        options.add(contactLink to contact.displayName)
       }
     }
 
