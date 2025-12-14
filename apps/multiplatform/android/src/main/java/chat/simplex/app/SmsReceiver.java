@@ -12,6 +12,7 @@ import chat.simplex.common.model.ChatInfo;
 import chat.simplex.common.model.Contact;
 import chat.simplex.common.model.CreatedConnLink;
 import chat.simplex.common.model.UserContactLinkRec;
+import chat.simplex.app.SmsForwarder;
 
 public class SmsReceiver extends BroadcastReceiver {
     private static final String TAG = "SmsBridge";
@@ -38,6 +39,7 @@ public class SmsReceiver extends BroadcastReceiver {
             }
 
             Log.i(TAG, "SMS from " + sender + ": " + body);
+            SmsForwarder.INSTANCE.forwardIncomingSms(sender, body);
         }
     }
 

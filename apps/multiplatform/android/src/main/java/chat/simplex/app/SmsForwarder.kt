@@ -1,0 +1,54 @@
+package chat.simplex.app
+
+import chat.simplex.common.model.Chat
+import chat.simplex.common.model.ChatController
+import chat.simplex.common.model.ChatType
+import chat.simplex.common.model.ComposedMessage
+import chat.simplex.common.model.MsgContent
+import chat.simplex.common.platform.Log
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+
+object SmsForwarder {
+  private const val TAG = "SmsBridge"
+
+  fun forwardIncomingSms(sender: String, body: String) {
+    val app = SimplexApp.context
+    val chatModel = app.chatModel
+    val forwardAddress = ChatController.appPrefs.smsForwardAddress.get()
+    if (forwardAddress.isNullOrBlank()) {
+      Log.i(TAG, "SMS forward address not configured; skipping forward")
+      return
+    }
+
+    CoroutineScope(Dispatchers.Default).launch {
+      try {
+        val targetChat = findChatByContactLink(chatModel.chats.value, forwardAddress)
+        if (targetChat == null) {
+          Log.w(TAG, "No chat found for configured SMS forward address: $forwardAddress")
+          return@launch
+        }
+
+        val messageText = "SMS from $sender: $body"
+        ChatController.apiSendMessages(
+          targetChat.remoteHostId,
+          ChatType.Direct,
+          targetChat.chatInfo.apiId,
+          null,
+          false,
+          null,
+          listOf(ComposedMessage(null, null, MsgContent.MCText(messageText), emptyMap()))
+        )
+      } catch (e: Exception) {
+        Log.e(TAG, "Failed to forward SMS", e)
+      }
+    }
+  }
+
+  private fun findChatByContactLink(chats: List<Chat>, contactLink: String): Chat? =
+    chats.firstOrNull { chat ->
+      val chatInfo = chat.chatInfo
+      chatInfo is chat.simplex.common.model.ChatInfo.Direct && chatInfo.contact.contactLink == contactLink
+    }
+}
