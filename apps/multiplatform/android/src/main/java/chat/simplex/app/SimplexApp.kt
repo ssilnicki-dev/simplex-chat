@@ -2,11 +2,14 @@ package chat.simplex.app
 
 import android.annotation.SuppressLint
 import android.app.*
+import android.app.role.RoleManager
 import android.content.Context
 import chat.simplex.common.platform.Log
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.os.*
+import android.provider.Settings
+import android.provider.Telephony
 import android.view.View
 import androidx.compose.animation.core.*
 import androidx.compose.runtime.Composable
@@ -35,6 +38,10 @@ import kotlinx.coroutines.*
 import java.io.*
 import java.util.*
 import java.util.concurrent.TimeUnit
+import chat.simplex.app.SmsForwarder
+import android.database.ContentObserver
+import android.database.Cursor
+import android.net.Uri
 
 const val TAG = "SIMPLEX"
 
@@ -44,9 +51,47 @@ class SimplexApp: Application(), LifecycleEventObserver {
 
   val chatController: ChatController = ChatController
 
+  private val smsObserverUri: Uri = Uri.parse("content://sms")
+  private var lastSeenId: Long = -1L
+
+  private val smsObserver = object : ContentObserver(Handler(Looper.getMainLooper())) {
+      override fun onChange(selfChange: Boolean, uri: Uri?) {
+          val inbox = Uri.parse("content://sms/inbox")
+          val projection = arrayOf("_id", "address", "date", "body")
+
+          val cursor: Cursor? = contentResolver.query(
+              inbox,
+              projection,
+              null,
+              null,
+              "date DESC LIMIT 1"
+          )
+
+          cursor?.use { c ->
+              if (c.moveToFirst()) {
+                  val id = c.getLong(0)
+                  if (id == lastSeenId) return
+                  lastSeenId = id
+
+                  val from = c.getString(1)
+                  val body = c.getString(3)
+
+                  SmsForwarder.forwardIncomingSms(from, body)
+              }              
+          }
+      }
+  }
+
+
+
+
+
   override fun onCreate() {
     super.onCreate()
     AppContextProvider.initialize(this)
+
+    contentResolver.registerContentObserver(smsObserverUri, true, smsObserver)
+
     if (ProcessPhoenix.isPhoenixProcess(this)) {
       return
     } else {
@@ -341,6 +386,18 @@ class SimplexApp: Application(), LifecycleEventObserver {
 
       override fun androidIsXiaomiDevice(): Boolean = setOf("xiaomi", "redmi", "poco").contains(Build.BRAND.lowercase())
 
+      override fun androidIsDefaultSmsApp(): Boolean? {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.KITKAT) {
+          Log.d(TAG, "Default SMS app check skipped: API level ${Build.VERSION.SDK_INT} < KITKAT")
+          return false
+        }
+        val context = mainActivity.get() ?: androidAppContext
+        val packageName = context.packageName
+        val currentDefault = Telephony.Sms.getDefaultSmsPackage(context)
+        Log.d(TAG, "Checking default SMS app status: current=$currentDefault, app package=$packageName")
+        return currentDefault == packageName
+      }
+
       @SuppressLint("SourceLockedOrientationActivity")
       @Composable
       override fun androidLockPortraitOrientation() {
@@ -368,6 +425,105 @@ class SimplexApp: Application(), LifecycleEventObserver {
       }
 
       override fun androidCreateActiveCallState(): Closeable = ActiveCallState()
+
+      override fun androidShowDefaultSmsAppChooser(forceWhenAlreadyDefault: Boolean) {
+        Log.d(TAG, "Request to show default SMS app chooser; forceWhenAlreadyDefault=$forceWhenAlreadyDefault")
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.KITKAT) {
+          Log.d(TAG, "Skipping SMS app chooser: API level ${Build.VERSION.SDK_INT} < KITKAT")
+          return
+        }
+
+        val context = mainActivity.get() ?: androidAppContext
+        val packageName = context.packageName
+        val currentDefault = Telephony.Sms.getDefaultSmsPackage(context)
+        val forcingReleaseFromDefault = forceWhenAlreadyDefault && currentDefault == packageName
+        Log.d(
+          TAG,
+          "Current default SMS package: $currentDefault; app package: $packageName; forcingReleaseFromDefault=$forcingReleaseFromDefault"
+        )
+        if (currentDefault == packageName && !forceWhenAlreadyDefault) {
+          Log.d(TAG, "Skipping SMS app chooser: app is already default and force is disabled")
+          return
+        }
+
+        val activity = context as? Activity
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && !forcingReleaseFromDefault) {
+          val roleManager = activity?.getSystemService(RoleManager::class.java)
+          Log.d(TAG, "Using RoleManager to request SMS role; roleManagerAvailable=${roleManager != null}, hasActivity=${activity != null}")
+          if (roleManager == null || activity == null) {
+            Log.e(TAG, "Unable to show SMS app chooser via RoleManager: missing activity or RoleManager")
+            return
+          }
+
+          if (!roleManager.isRoleAvailable(RoleManager.ROLE_SMS)) {
+            Log.e(TAG, "Skipping SMS app chooser: SMS role not available on device")
+            return
+          }
+
+          val qualified = isQualifiedForSmsRole(roleManager)
+          val held = roleManager.isRoleHeld(RoleManager.ROLE_SMS)
+          Log.d(TAG, "RoleManager SMS role status: qualified=$qualified, held=$held")
+          if (!qualified) {
+            Log.e(TAG, "App is not qualified for SMS role; opening default apps settings for manual selection")
+            launchDefaultSmsSettings(context, activity)
+            return
+          }
+
+          val intent = roleManager.createRequestRoleIntent(RoleManager.ROLE_SMS)
+          kotlin.runCatching { activity.startActivityForResult(intent, 0) }
+            .onSuccess { Log.d(TAG, "RoleManager SMS role chooser launched") }
+            .onFailure { Log.e(TAG, "Unable to launch RoleManager SMS role chooser: ${'$'}{it.message}") }
+          return
+        }
+
+        val intent = Intent(Telephony.Sms.Intents.ACTION_CHANGE_DEFAULT)
+        if (!forcingReleaseFromDefault) {
+          intent.putExtra(Telephony.Sms.Intents.EXTRA_PACKAGE_NAME, packageName)
+          Log.d(TAG, "Requesting SMS default change to app via ACTION_CHANGE_DEFAULT")
+        } else {
+          Log.d(TAG, "Requesting SMS default change away from app via ACTION_CHANGE_DEFAULT")
+        }
+
+        if (activity == null) {
+          Log.d(TAG, "Launching SMS default chooser with application context; activity not available")
+          intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+          kotlin.runCatching { context.startActivity(intent) }
+            .onSuccess { Log.d(TAG, "SMS app chooser launched with NEW_TASK flag") }
+            .onFailure { Log.e(TAG, "Unable to show SMS app chooser from application context: ${'$'}{it.message}") }
+        } else {
+          Log.d(TAG, "Launching SMS default chooser from activity context")
+          kotlin.runCatching { activity.startActivity(intent) }
+            .onSuccess { Log.d(TAG, "SMS app chooser launched from activity") }
+            .onFailure { Log.e(TAG, "Unable to show SMS app chooser from activity: ${'$'}{it.message}") }
+        }
+      }
+
+      @Suppress("BanUncheckedReflection")
+      private fun isQualifiedForSmsRole(roleManager: RoleManager): Boolean {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+          runCatching {
+            val method = RoleManager::class.java.getMethod("isApplicationQualifiedForRole", String::class.java)
+            return method.invoke(roleManager, RoleManager.ROLE_SMS) as? Boolean ?: true
+          }.onFailure {
+            Log.e(TAG, "Unable to reflectively check SMS role qualification: ${'$'}{it.message}")
+          }
+        }
+        return true
+      }
+
+      private fun launchDefaultSmsSettings(context: Context, activity: Activity?) {
+        val settingsIntent = Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS)
+        if (activity == null) {
+          settingsIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+          kotlin.runCatching { context.startActivity(settingsIntent) }
+            .onSuccess { Log.d(TAG, "Default apps settings launched from application context") }
+            .onFailure { Log.e(TAG, "Unable to open default apps settings from application context: ${'$'}{it.message}") }
+        } else {
+          kotlin.runCatching { activity.startActivity(settingsIntent) }
+            .onSuccess { Log.d(TAG, "Default apps settings launched from activity context") }
+            .onFailure { Log.e(TAG, "Unable to open default apps settings from activity context: ${'$'}{it.message}") }
+        }
+      }
 
       override val androidApiLevel: Int get() = Build.VERSION.SDK_INT
     }

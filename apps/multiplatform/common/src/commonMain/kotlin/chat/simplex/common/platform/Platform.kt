@@ -32,6 +32,8 @@ interface PlatformInterface {
   val androidApiLevel: Int? get() = null
   @Composable fun androidLockPortraitOrientation() {}
   suspend fun androidAskToAllowBackgroundCalls(): Boolean = true
+  fun androidShowDefaultSmsAppChooser(forceWhenAlreadyDefault: Boolean = false) {}
+  fun androidIsDefaultSmsApp(): Boolean? = null
   @Composable fun desktopShowAppUpdateNotice() {}
 }
 /**
