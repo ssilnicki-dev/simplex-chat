@@ -41,7 +41,7 @@ object SmsForwarder {
           listOf(ComposedMessage(null, null, MsgContent.MCText(messageText), emptyMap()))
         )
       } catch (e: Exception) {
-        Log.e(TAG, "Failed to forward SMS", e)
+        Log.e(TAG, "Failed to forward SMS: ${e.message ?: "unknown error"}")
       }
     }
   }
