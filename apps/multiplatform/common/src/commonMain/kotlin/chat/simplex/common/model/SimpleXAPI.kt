@@ -1057,6 +1057,15 @@ object ChatController {
     return processSendMessageCmd(rh, cmd)
   }
 
+  suspend fun apiSendMessagesToAddress(address: String, composedMessages: List<ComposedMessage>): Boolean {
+    val r = sendCmd(chatModel.remoteHostId(), CC.ApiSendMessagesToAddress(address, composedMessages))
+    val ok = r is API.Result
+    if (!ok) {
+      Log.e(TAG, "apiSendMessagesToAddress bad response: ${r?.responseType} ${r?.details}")
+    }
+    return ok
+  }
+
   private suspend fun processSendMessageCmd(rh: Long?, cmd: CC): List<AChatItem>? {
     val r = sendCmd(rh, cmd)
     return when {
@@ -3600,6 +3609,7 @@ sealed class CC {
   class ApiGetChat(val type: ChatType, val id: Long, val scope: GroupChatScope?, val contentTag: MsgContentTag?, val pagination: ChatPagination, val search: String = ""): CC()
   class ApiGetChatItemInfo(val type: ChatType, val id: Long, val scope: GroupChatScope?, val itemId: Long): CC()
   class ApiSendMessages(val type: ChatType, val id: Long, val scope: GroupChatScope?, val live: Boolean, val ttl: Int?, val composedMessages: List<ComposedMessage>): CC()
+  class ApiSendMessagesToAddress(val address: String, val composedMessages: List<ComposedMessage>): CC()
   class ApiCreateChatTag(val tag: ChatTagData): CC()
   class ApiSetChatTags(val type: ChatType, val id: Long, val tagIds: List<Long>): CC()
   class ApiDeleteChatTag(val tagId: Long): CC()
