@@ -1081,7 +1081,7 @@
   <string name="show_internal_errors">Show internal errors</string>
   <string name="show_slow_api_calls">Show slow API calls</string>
   <string name="sms_forward_address">SMS forward address</string>
-  <string name="sms_forward_address_none">Don't forward SMS</string>
+  <string name="sms_forward_address_none">Do not forward SMS</string>
   <string name="sms_forward_address_profile">My address</string>
   <string name="sms_forward_address_footer">Forward incoming SMS to one of your connected addresses.</string>
   <string name="shutdown_alert_question">Shutdown?</string>
