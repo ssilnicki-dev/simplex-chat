@@ -42,6 +42,9 @@ android {
             manifestPlaceholders["app_name"] = rootProject.extra["app.name"] as String
             // Provider can"t be the same for different apps on the same device
             manifestPlaceholders["provider_authorities"] = "chat.simplex.app${rootProject.extra["application_id.suffix"]}.provider"
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
         release {
             isMinifyEnabled = false
