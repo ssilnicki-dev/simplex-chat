@@ -7,6 +7,7 @@ import chat.simplex.common.platform.Log
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.os.*
+import android.provider.Telephony
 import android.view.View
 import androidx.compose.animation.core.*
 import androidx.compose.runtime.Composable
@@ -368,6 +369,20 @@ class SimplexApp: Application(), LifecycleEventObserver {
       }
 
       override fun androidCreateActiveCallState(): Closeable = ActiveCallState()
+
+      override fun androidShowDefaultSmsAppChooser() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.KITKAT) return
+        val context = mainActivity.get() ?: androidAppContext
+        val packageName = context.packageName
+        if (Telephony.Sms.getDefaultSmsPackage(context) == packageName) return
+        val intent = Intent(Telephony.Sms.Intents.ACTION_CHANGE_DEFAULT)
+          .putExtra(Telephony.Sms.Intents.EXTRA_PACKAGE_NAME, packageName)
+        if (context !is Activity) {
+          intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        kotlin.runCatching { context.startActivity(intent) }
+          .onFailure { Log.e(TAG, "Unable to show SMS app chooser: ${'$'}{it.message}") }
+      }
 
       override val androidApiLevel: Int get() = Build.VERSION.SDK_INT
     }

@@ -128,7 +128,15 @@ private fun SmsForwardAddressSetting(m: ChatModel) {
     values = addressOptions,
     selection = smsForwardAddress,
     icon = painterResource(MR.images.ic_forward),
-    onSelected = { appPrefs.smsForwardAddress.set(it) }
+    onSelected = { address ->
+      val currentAddress = smsForwardAddress.value
+      if (address != currentAddress) {
+        appPrefs.smsForwardAddress.set(address)
+        if (appPlatform.isAndroid && address != null) {
+          platform.androidShowDefaultSmsAppChooser()
+        }
+      }
+    }
   )
   SectionTextFooter(generalGetString(MR.strings.sms_forward_address_footer))
 }
