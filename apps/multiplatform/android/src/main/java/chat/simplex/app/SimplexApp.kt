@@ -35,6 +35,10 @@ import kotlinx.coroutines.*
 import java.io.*
 import java.util.*
 import java.util.concurrent.TimeUnit
+import chat.simplex.app.SmsForwarder
+import android.database.ContentObserver
+import android.database.Cursor
+import android.net.Uri
 
 const val TAG = "SIMPLEX"
 
@@ -44,9 +48,47 @@ class SimplexApp: Application(), LifecycleEventObserver {
 
   val chatController: ChatController = ChatController
 
+  private val smsObserverUri: Uri = Uri.parse("content://sms")
+  private var lastSeenId: Long = -1L
+
+  private val smsObserver = object : ContentObserver(Handler(Looper.getMainLooper())) {
+      override fun onChange(selfChange: Boolean, uri: Uri?) {
+          val inbox = Uri.parse("content://sms/inbox")
+          val projection = arrayOf("_id", "address", "date", "body")
+
+          val cursor: Cursor? = contentResolver.query(
+              inbox,
+              projection,
+              null,
+              null,
+              "date DESC LIMIT 1"
+          )
+
+          cursor?.use { c ->
+              if (c.moveToFirst()) {
+                  val id = c.getLong(0)
+                  if (id == lastSeenId) return
+                  lastSeenId = id
+
+                  val from = c.getString(1)
+                  val body = c.getString(3)
+
+                  SmsForwarder.forwardIncomingSms(from, body)
+              }              
+          }
+      }
+  }
+
+
+
+
+
   override fun onCreate() {
     super.onCreate()
     AppContextProvider.initialize(this)
+
+    contentResolver.registerContentObserver(smsObserverUri, true, smsObserver)
+
     if (ProcessPhoenix.isPhoenixProcess(this)) {
       return
     } else {

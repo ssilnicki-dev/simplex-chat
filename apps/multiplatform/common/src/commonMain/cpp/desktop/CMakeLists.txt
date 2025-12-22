@@ -59,7 +59,7 @@ if(WIN32)
     set_target_properties( simplex PROPERTIES IMPORTED_IMPLIB ${SIMPLEXLIB})
 else()
     FILE(GLOB SIMPLEXLIB ${CMAKE_SOURCE_DIR}/libs/${OS_LIB_PATH}-${OS_LIB_ARCH}/lib*simplex-chat*.${OS_LIB_EXT})
-    set_target_properties( simplex PROPERTIES IMPORTED_LOCATION ${SIMPLEXLIB})
+    set_target_properties(simplex PROPERTIES IMPORTED_LOCATION ${SIMPLEXLIB})
 endif()
 
 

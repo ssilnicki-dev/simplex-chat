@@ -6,6 +6,8 @@ import SectionTextFooter
 import SectionView
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalUriHandler
+import chat.simplex.common.model.ChatInfo
+import chat.simplex.common.model.ChatModel
 import chat.simplex.common.model.ChatController.appPrefs
 import chat.simplex.common.platform.*
 import dev.icerock.moko.resources.compose.painterResource
@@ -13,6 +15,8 @@ import dev.icerock.moko.resources.compose.stringResource
 import chat.simplex.common.views.TerminalView
 import chat.simplex.common.views.helpers.*
 import chat.simplex.res.MR
+
+private const val SMS_FORWARD_LOG_TAG = "SMS_FORWARD"
 
 @Composable
 fun DeveloperView(withAuth: (title: String, desc: String, block: () -> Unit) -> Unit
@@ -44,6 +48,9 @@ fun DeveloperView(withAuth: (title: String, desc: String, block: () -> Unit) -> 
           )
         }
         SettingsPreferenceItem(painterResource(MR.images.ic_drive_folder_upload), stringResource(MR.strings.confirm_database_upgrades), m.controller.appPrefs.confirmDBUpgrades)
+        if (appPlatform.isAndroid) {
+          SmsForwardAddressSetting(m)
+        }
         if (appPlatform.isDesktop) {
           TerminalAlwaysVisibleItem(m.controller.appPrefs.terminalAlwaysVisible) { checked ->
             if (checked) {
@@ -75,5 +82,58 @@ fun showInDevelopingAlert() {
   AlertManager.shared.showAlertMsg(
     title = generalGetString(MR.strings.in_developing_title),
     text = generalGetString(MR.strings.in_developing_desc)
+  )
+}
+
+@Composable
+private fun SmsForwardAddressSetting(m: ChatModel) {
+  val smsForwardAddress = remember { appPrefs.smsForwardAddress.state }
+  var lastSmsForwardAddress by remember { mutableStateOf(smsForwardAddress.value) }
+
+  val addressOptions = remember(m.userAddress.value, m.chats.value, smsForwardAddress.value) {
+    val options = mutableListOf<Pair<String?, String>>()
+    options.add(null to generalGetString(MR.strings.sms_forward_address_none))
+
+    m.userAddress.value?.connLinkContact?.let { connLink ->
+      val displayLink = connLink.connShortLink ?: connLink.connFullLink
+      options.add(connLink.connFullLink to "${generalGetString(MR.strings.sms_forward_address_profile)} • $displayLink")
+    }
+
+    val excludedContactNames = setOf("SimpleX Status", "Ask SimpleX Team")
+    m.chats.value?.forEach { chat ->
+      val directChat = chat.chatInfo as? ChatInfo.Direct
+      val contact = directChat?.contact
+      val contactLink = contact?.contactLink
+      val optionAddress = when {
+        !contactLink.isNullOrBlank() -> contactLink
+        contact?.contactConnIncognito == true -> directChat.id
+        else -> null
+      }
+      val displayName = contact?.displayName
+      if (!optionAddress.isNullOrBlank() && displayName != null && displayName !in excludedContactNames) {
+        options.add(optionAddress to displayName)
+      }
+    }
+
+    val current = smsForwardAddress.value
+    if (current != null && options.none { it.first == current }) {
+      options.add(current to current)
+    }
+
+    options
+  }
+
+  ExposedDropDownSettingRow(
+    title = stringResource(MR.strings.sms_forward_address),
+    values = addressOptions,
+    selection = smsForwardAddress,
+    icon = painterResource(MR.images.ic_forward),
+    onSelected = { address ->
+      val currentAddress = smsForwardAddress.value
+      if (address != currentAddress) {
+        appPrefs.smsForwardAddress.set(address)
+      } else {
+      }
+    }
   )
 }

@@ -27,6 +27,8 @@
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
 
+  <!-- SMS Bridge -->
+  <uses-permission android:name="android.permission.READ_SMS"/>
   <!-- Allows to query app name and icon that can open specific file type -->
   <queries>
     <intent>
