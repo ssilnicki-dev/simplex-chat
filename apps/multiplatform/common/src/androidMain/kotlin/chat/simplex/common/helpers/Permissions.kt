@@ -9,22 +9,10 @@ import chat.simplex.common.views.helpers.generalGetString
 import chat.simplex.res.MR
 
 fun Context.openAppSettingsInSystem() {
-  val packageName = androidAppContext.packageName
-  val flags = Intent.FLAG_ACTIVITY_NEW_TASK
-  val permissionsIntent = Intent(Settings.ACTION_APP_PERMISSIONS).apply {
-    putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
-    addFlags(flags)
-  }
-  try {
-    startActivity(permissionsIntent)
-    return
-  } catch (e: ActivityNotFoundException) {
-    Log.e(TAG, e.stackTraceToString())
-  }
   Intent().apply {
     action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
-    data = Uri.parse("package:$packageName")
-    addFlags(flags)
+    data = Uri.parse("package:${androidAppContext.packageName}")
+    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     try {
       startActivity(this)
     } catch (e: ActivityNotFoundException) {
