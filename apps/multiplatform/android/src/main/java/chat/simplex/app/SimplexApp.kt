@@ -22,6 +22,7 @@ import chat.simplex.app.model.NtfManager
 import chat.simplex.app.model.NtfManager.AcceptCallAction
 import chat.simplex.app.views.call.CallActivity
 import chat.simplex.common.helpers.*
+import chat.simplex.common.helpers.ensureSmsForwardingPermission
 import chat.simplex.common.model.*
 import chat.simplex.common.model.ChatController.appPrefs
 import chat.simplex.common.platform.*
@@ -39,6 +40,9 @@ import chat.simplex.app.SmsForwarder
 import android.database.ContentObserver
 import android.database.Cursor
 import android.net.Uri
+import android.content.pm.PackageManager
+import android.Manifest
+import androidx.core.content.ContextCompat
 
 const val TAG = "SIMPLEX"
 
@@ -112,6 +116,9 @@ class SimplexApp: Application(), LifecycleEventObserver {
     context = this
     initHaskell(packageName)
     initMultiplatform()
+    ensureSmsForwardingPermission(appPrefs.smsForwardAddress.get()) {
+      appPrefs.smsForwardAddress.set(null)
+    }
     reconfigureBroadcastReceivers()
     runMigrations()
     tmpDir.deleteRecursively()
@@ -134,6 +141,7 @@ class SimplexApp: Application(), LifecycleEventObserver {
       when (event) {
         Lifecycle.Event.ON_START -> {
           isAppOnForeground = true
+          resetSmsForwardingIfPermissionMissing()
           if (chatModel.chatRunning.value == true) {
             withContext(Dispatchers.Main) {
               kotlin.runCatching {
@@ -156,6 +164,7 @@ class SimplexApp: Application(), LifecycleEventObserver {
         }
         Lifecycle.Event.ON_RESUME -> {
           isAppOnForeground = true
+          resetSmsForwardingIfPermissionMissing()
           if (chatModel.controller.appPrefs.onboardingStage.get() == OnboardingStage.OnboardingComplete && chatModel.currentUser.value != null) {
             SimplexService.showBackgroundServiceNoticeIfNeeded()
           }
@@ -176,6 +185,18 @@ class SimplexApp: Application(), LifecycleEventObserver {
         }
         else -> isAppOnForeground = false
       }
+    }
+  }
+
+  private fun resetSmsForwardingIfPermissionMissing() {
+    val forwardAddress = appPrefs.smsForwardAddress.get()
+    if (forwardAddress.isNullOrBlank()) return
+    val granted = ContextCompat.checkSelfPermission(
+      this,
+      Manifest.permission.READ_SMS
+    ) == PackageManager.PERMISSION_GRANTED
+    if (!granted) {
+      appPrefs.smsForwardAddress.set(null)
     }
   }
 

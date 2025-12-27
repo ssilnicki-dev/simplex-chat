@@ -49,13 +49,6 @@ class MainActivity: FragmentActivity() {
       processIntent(intent)
       processExternalIntent(intent)
     }
-    if (ChatController.appPrefs.privacyProtectScreen.get()) {
-      Log.d(TAG, "onCreate: set FLAG_SECURE")
-      window.setFlags(
-        WindowManager.LayoutParams.FLAG_SECURE,
-        WindowManager.LayoutParams.FLAG_SECURE
-      )
-    }
     enableEdgeToEdge()
     setContent {
       AppScreen()

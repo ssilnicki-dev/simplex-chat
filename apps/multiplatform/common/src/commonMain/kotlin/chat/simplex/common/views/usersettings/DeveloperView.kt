@@ -9,6 +9,7 @@ import androidx.compose.ui.platform.LocalUriHandler
 import chat.simplex.common.model.ChatInfo
 import chat.simplex.common.model.ChatModel
 import chat.simplex.common.model.ChatController.appPrefs
+import chat.simplex.common.helpers.ensureSmsForwardingPermission
 import chat.simplex.common.platform.*
 import dev.icerock.moko.resources.compose.painterResource
 import dev.icerock.moko.resources.compose.stringResource
@@ -94,11 +95,6 @@ private fun SmsForwardAddressSetting(m: ChatModel) {
     val options = mutableListOf<Pair<String?, String>>()
     options.add(null to generalGetString(MR.strings.sms_forward_address_none))
 
-    m.userAddress.value?.connLinkContact?.let { connLink ->
-      val displayLink = connLink.connShortLink ?: connLink.connFullLink
-      options.add(connLink.connFullLink to "${generalGetString(MR.strings.sms_forward_address_profile)} • $displayLink")
-    }
-
     val excludedContactNames = setOf("SimpleX Status", "Ask SimpleX Team")
     m.chats.value?.forEach { chat ->
       val directChat = chat.chatInfo as? ChatInfo.Direct
@@ -132,6 +128,9 @@ private fun SmsForwardAddressSetting(m: ChatModel) {
       val currentAddress = smsForwardAddress.value
       if (address != currentAddress) {
         appPrefs.smsForwardAddress.set(address)
+        ensureSmsForwardingPermission(address) {
+          appPrefs.smsForwardAddress.set(null)
+        }
       } else {
       }
     }
