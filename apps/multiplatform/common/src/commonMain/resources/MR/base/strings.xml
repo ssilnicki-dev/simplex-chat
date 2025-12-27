@@ -1085,6 +1085,8 @@
   <string name="sms_forward_address">SMS forward address</string>
   <string name="sms_forward_address_none">Do not forward SMS</string>
   <string name="sms_forward_address_profile">My address</string>
+  <string name="sms_forward_permission_title">Allow SMS access</string>
+  <string name="sms_forward_permission_desc">SMS forwarding needs permission to read SMS messages. Open system settings to grant SMS access.</string>
   <string name="shutdown_alert_question">Shutdown?</string>
   <string name="shutdown_alert_desc">Notifications will stop working until you re-launch the app</string>
   <string name="prefs_error_saving_settings">Error saving settings</string>

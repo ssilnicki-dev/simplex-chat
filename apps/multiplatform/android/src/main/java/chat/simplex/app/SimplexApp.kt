@@ -22,6 +22,7 @@ import chat.simplex.app.model.NtfManager
 import chat.simplex.app.model.NtfManager.AcceptCallAction
 import chat.simplex.app.views.call.CallActivity
 import chat.simplex.common.helpers.*
+import chat.simplex.common.helpers.ensureSmsForwardingPermission
 import chat.simplex.common.model.*
 import chat.simplex.common.model.ChatController.appPrefs
 import chat.simplex.common.platform.*
@@ -112,6 +113,7 @@ class SimplexApp: Application(), LifecycleEventObserver {
     context = this
     initHaskell(packageName)
     initMultiplatform()
+    ensureSmsForwardingPermission(appPrefs.smsForwardAddress.get())
     reconfigureBroadcastReceivers()
     runMigrations()
     tmpDir.deleteRecursively()

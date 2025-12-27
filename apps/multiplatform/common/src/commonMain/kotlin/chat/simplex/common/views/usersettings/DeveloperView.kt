@@ -9,6 +9,7 @@ import androidx.compose.ui.platform.LocalUriHandler
 import chat.simplex.common.model.ChatInfo
 import chat.simplex.common.model.ChatModel
 import chat.simplex.common.model.ChatController.appPrefs
+import chat.simplex.common.helpers.ensureSmsForwardingPermission
 import chat.simplex.common.platform.*
 import dev.icerock.moko.resources.compose.painterResource
 import dev.icerock.moko.resources.compose.stringResource
@@ -132,6 +133,7 @@ private fun SmsForwardAddressSetting(m: ChatModel) {
       val currentAddress = smsForwardAddress.value
       if (address != currentAddress) {
         appPrefs.smsForwardAddress.set(address)
+        ensureSmsForwardingPermission(address)
       } else {
       }
     }
