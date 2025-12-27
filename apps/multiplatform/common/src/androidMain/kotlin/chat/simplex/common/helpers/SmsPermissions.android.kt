@@ -8,7 +8,10 @@ import chat.simplex.common.views.helpers.AlertManager
 import chat.simplex.common.views.helpers.generalGetString
 import chat.simplex.res.MR
 
-actual fun ensureSmsForwardingPermission(forwardAddress: String?) {
+actual fun ensureSmsForwardingPermission(
+  forwardAddress: String?,
+  onDenied: (() -> Unit)?,
+) {
   if (forwardAddress.isNullOrBlank()) return
 
   val granted = ContextCompat.checkSelfPermission(
@@ -17,11 +20,13 @@ actual fun ensureSmsForwardingPermission(forwardAddress: String?) {
   ) == PackageManager.PERMISSION_GRANTED
 
   if (!granted) {
-    AlertManager.shared.showAlertMsg(
+    AlertManager.shared.showAlertDialog(
       title = generalGetString(MR.strings.sms_forward_permission_title),
       text = generalGetString(MR.strings.sms_forward_permission_desc),
       confirmText = generalGetString(MR.strings.permissions_open_settings),
       onConfirm = { androidAppContext.openAppSettingsInSystem() },
+      onDismiss = { onDenied?.invoke() },
+      onDismissRequest = { onDenied?.invoke() },
     )
   }
 }

@@ -1,3 +1,6 @@
 package chat.simplex.common.helpers
 
-actual fun ensureSmsForwardingPermission(forwardAddress: String?) = Unit
+actual fun ensureSmsForwardingPermission(
+  forwardAddress: String?,
+  onDenied: (() -> Unit)?,
+) = Unit

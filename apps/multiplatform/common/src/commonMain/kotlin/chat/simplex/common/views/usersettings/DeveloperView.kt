@@ -133,7 +133,9 @@ private fun SmsForwardAddressSetting(m: ChatModel) {
       val currentAddress = smsForwardAddress.value
       if (address != currentAddress) {
         appPrefs.smsForwardAddress.set(address)
-        ensureSmsForwardingPermission(address)
+        ensureSmsForwardingPermission(address) {
+          appPrefs.smsForwardAddress.set(null)
+        }
       } else {
       }
     }
