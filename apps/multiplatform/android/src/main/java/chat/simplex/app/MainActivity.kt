@@ -49,6 +49,7 @@ class MainActivity: FragmentActivity() {
       processIntent(intent)
       processExternalIntent(intent)
     }
+    platform.androidSetAllowScreenshots(ChatController.appPrefs.allowScreenshots.get())
     enableEdgeToEdge()
     setContent {
       AppScreen()

@@ -23,6 +23,7 @@ interface PlatformInterface {
   fun androidIsBackgroundCallAllowed(): Boolean = true
   fun androidSetNightModeIfSupported() {}
   fun androidSetStatusAndNavigationBarAppearance(isLightStatusBar: Boolean, isLightNavBar: Boolean, blackNavBar: Boolean = false, themeBackgroundColor: Color = CurrentColors.value.colors.background) {}
+  fun androidSetAllowScreenshots(allow: Boolean) {}
   fun androidStartCallActivity(acceptCall: Boolean, remoteHostId: Long? = null, chatId: ChatId? = null) {}
   fun androidPictureInPictureAllowed(): Boolean = true
   fun androidCallEnded() {}
