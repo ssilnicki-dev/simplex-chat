@@ -372,7 +372,7 @@ fun ChatPreviewView(
     } else {
       val showSmsForward = (cInfo as? ChatInfo.Direct)?.let { isSmsForwardContact(it, smsForwardAddress.value) } == true
       if (showSmsForward) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.sp.toDp())) {
+        Row(horizontalArrangement = Arrangement.spacedBy(2.sp.toDp()), verticalAlignment = Alignment.CenterVertically) {
           SmsForwardIcon()
           IncognitoIcon(chat.chatInfo.incognito)
         }
