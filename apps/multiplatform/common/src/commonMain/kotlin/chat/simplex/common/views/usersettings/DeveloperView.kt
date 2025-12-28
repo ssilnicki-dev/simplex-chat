@@ -96,9 +96,8 @@ fun showInDevelopingAlert() {
 @Composable
 private fun SmsForwardAddressSetting(m: ChatModel) {
   val smsForwardAddress = remember { appPrefs.smsForwardAddress.state }
-  var lastSmsForwardAddress by remember { mutableStateOf(smsForwardAddress.value) }
 
-  val addressOptions = remember(m.userAddress.value, m.chats.value, smsForwardAddress.value) {
+  val addressOptions = remember(m.userAddress.value, m.chats.value) {
     val options = mutableListOf<Pair<String?, String>>()
     options.add(null to generalGetString(MR.strings.sms_forward_address_none))
 
@@ -121,11 +120,6 @@ private fun SmsForwardAddressSetting(m: ChatModel) {
         val localInfo = chat.chatInfo as ChatInfo.Local
         options.add(localInfo.id to localInfo.displayName)
       }
-    }
-
-    val current = smsForwardAddress.value
-    if (current != null && options.none { it.first == current }) {
-      options.add(current to current)
     }
 
     options
