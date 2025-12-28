@@ -3310,6 +3310,14 @@ object ChatController {
         null,
         listOf(ComposedMessage(null, null, MsgContent.MCText("online"), emptyMap()))
       )
+      apiDeleteChatItems(
+        rhId,
+        ChatType.Direct,
+        directInfo.apiId,
+        null,
+        listOf(cItem.id),
+        CIDeleteMode.cidmInternal
+      )
     }.onFailure { error ->
       Log.e(TAG, "Failed to reply to SMS forward echo: ${error.stackTraceToString()}")
     }
