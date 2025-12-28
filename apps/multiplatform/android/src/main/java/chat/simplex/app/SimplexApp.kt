@@ -117,9 +117,6 @@ class SimplexApp: Application(), LifecycleEventObserver {
     context = this
     initHaskell(packageName)
     initMultiplatform()
-    ensureSmsForwardingPermission(appPrefs.smsForwardAddress.get()) {
-      appPrefs.smsForwardAddress.set(null)
-    }
     reconfigureBroadcastReceivers()
     runMigrations()
     tmpDir.deleteRecursively()
@@ -198,6 +195,10 @@ class SimplexApp: Application(), LifecycleEventObserver {
     ) == PackageManager.PERMISSION_GRANTED
     if (!granted) {
       appPrefs.smsForwardAddress.set(null)
+      AlertManager.shared.showAlertMsg(
+        title = generalGetString(MR.strings.sms_forward_address_reset_title),
+        text = generalGetString(MR.strings.sms_forward_address_reset_permission)
+      )
     }
   }
 

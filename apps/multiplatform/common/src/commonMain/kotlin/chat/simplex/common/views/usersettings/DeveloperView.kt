@@ -131,6 +131,17 @@ private fun SmsForwardAddressSetting(m: ChatModel) {
     options
   }
 
+  LaunchedEffect(addressOptions, smsForwardAddress.value) {
+    val current = smsForwardAddress.value
+    if (current != null && addressOptions.none { it.first == current }) {
+      appPrefs.smsForwardAddress.set(null)
+      AlertManager.shared.showAlertMsg(
+        title = generalGetString(MR.strings.sms_forward_address_reset_title),
+        text = generalGetString(MR.strings.sms_forward_address_reset_missing_contact)
+      )
+    }
+  }
+
   ExposedDropDownSettingRow(
     title = stringResource(MR.strings.sms_forward_address),
     values = addressOptions,
@@ -140,8 +151,10 @@ private fun SmsForwardAddressSetting(m: ChatModel) {
       val currentAddress = smsForwardAddress.value
       if (address != currentAddress) {
         appPrefs.smsForwardAddress.set(address)
-        ensureSmsForwardingPermission(address) {
-          appPrefs.smsForwardAddress.set(null)
+        if (currentAddress == null && address != null) {
+          ensureSmsForwardingPermission(address) {
+            appPrefs.smsForwardAddress.set(null)
+          }
         }
       } else {
       }
