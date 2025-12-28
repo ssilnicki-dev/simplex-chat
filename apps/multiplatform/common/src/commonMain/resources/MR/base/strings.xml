@@ -1089,6 +1089,7 @@
   <string name="sms_forward_address_reset_title">SMS forwarding disabled</string>
   <string name="sms_forward_address_reset_permission">Forward address is reset to Disabled due to insufficient permissions.</string>
   <string name="sms_forward_address_reset_missing_contact">Forward address is reset to Disabled because the forwarding contact is no longer available.</string>
+  <string name="allow_screenshots">Allow screenshots</string>
   <string name="shutdown_alert_question">Shutdown?</string>
   <string name="shutdown_alert_desc">Notifications will stop working until you re-launch the app</string>
   <string name="prefs_error_saving_settings">Error saving settings</string>

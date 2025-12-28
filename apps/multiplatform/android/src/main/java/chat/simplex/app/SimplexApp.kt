@@ -42,6 +42,7 @@ import android.net.Uri
 import android.content.pm.PackageManager
 import android.Manifest
 import androidx.core.content.ContextCompat
+import android.view.WindowManager
 import chat.simplex.res.MR
 
 const val TAG = "SIMPLEX"
@@ -383,6 +384,18 @@ class SimplexApp: Application(), LifecycleEventObserver {
           window.navigationBarColor = if (blackNavBar) Color.Black.toArgb() else themeBackgroundColor.toArgb()
         } else {
           window.navigationBarColor = Color.Transparent.toArgb()
+        }
+      }
+
+      override fun androidSetAllowScreenshots(allow: Boolean) {
+        val window = mainActivity.get()?.window ?: return
+        if (allow) {
+          window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        } else {
+          window.setFlags(
+            WindowManager.LayoutParams.FLAG_SECURE,
+            WindowManager.LayoutParams.FLAG_SECURE
+          )
         }
       }
 

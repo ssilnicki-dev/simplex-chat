@@ -50,6 +50,13 @@ fun DeveloperView(withAuth: (title: String, desc: String, block: () -> Unit) -> 
         }
         SettingsPreferenceItem(painterResource(MR.images.ic_drive_folder_upload), stringResource(MR.strings.confirm_database_upgrades), m.controller.appPrefs.confirmDBUpgrades)
         if (appPlatform.isAndroid) {
+          SettingsPreferenceItem(
+            painterResource(MR.images.ic_visibility_off),
+            stringResource(MR.strings.allow_screenshots),
+            appPreferences.allowScreenshots
+          ) { allow ->
+            platform.androidSetAllowScreenshots(allow)
+          }
           SmsForwardAddressSetting(m)
         }
         if (appPlatform.isDesktop) {

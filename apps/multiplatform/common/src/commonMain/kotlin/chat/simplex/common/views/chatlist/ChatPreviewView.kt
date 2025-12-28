@@ -557,8 +557,8 @@ fun SmsForwardIcon() {
     contentDescription = null,
     tint = MaterialTheme.colors.secondary,
     modifier = Modifier
-      .size(16.sp.toDp())
-      .offset(x = 1.sp.toDp())
+      .size(21.sp.toDp())
+      .offset(x = 3.sp.toDp())
   )
 }
 
