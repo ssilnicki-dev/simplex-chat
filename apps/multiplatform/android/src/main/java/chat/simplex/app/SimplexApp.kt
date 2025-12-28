@@ -94,10 +94,7 @@ class SimplexApp: Application(), LifecycleEventObserver {
     super.onCreate()
     AppContextProvider.initialize(this)
 
-    if (!smsObserverRegistered) {
-      contentResolver.registerContentObserver(smsObserverUri, true, smsObserver)
-      smsObserverRegistered = true
-    }
+    updateSmsObserverRegistration()
 
     if (ProcessPhoenix.isPhoenixProcess(this)) {
       return
@@ -144,7 +141,6 @@ class SimplexApp: Application(), LifecycleEventObserver {
       when (event) {
         Lifecycle.Event.ON_START -> {
           isAppOnForeground = true
-          resetSmsForwardingIfPermissionMissing()
           if (chatModel.chatRunning.value == true) {
             withContext(Dispatchers.Main) {
               kotlin.runCatching {
@@ -168,6 +164,7 @@ class SimplexApp: Application(), LifecycleEventObserver {
         Lifecycle.Event.ON_RESUME -> {
           isAppOnForeground = true
           resetSmsForwardingIfPermissionMissing()
+          updateSmsObserverRegistration()
           if (chatModel.controller.appPrefs.onboardingStage.get() == OnboardingStage.OnboardingComplete && chatModel.currentUser.value != null) {
             SimplexService.showBackgroundServiceNoticeIfNeeded()
           }
@@ -204,6 +201,22 @@ class SimplexApp: Application(), LifecycleEventObserver {
         title = generalGetString(MR.strings.sms_forward_address_reset_title),
         text = generalGetString(MR.strings.sms_forward_address_reset_permission)
       )
+    }
+  }
+
+  private fun updateSmsObserverRegistration() {
+    val forwardAddress = appPrefs.smsForwardAddress.get()
+    val granted = ContextCompat.checkSelfPermission(
+      this,
+      Manifest.permission.READ_SMS
+    ) == PackageManager.PERMISSION_GRANTED
+    val shouldRegister = !forwardAddress.isNullOrBlank() && granted
+    if (shouldRegister && !smsObserverRegistered) {
+      contentResolver.registerContentObserver(smsObserverUri, true, smsObserver)
+      smsObserverRegistered = true
+    } else if (!shouldRegister && smsObserverRegistered) {
+      contentResolver.unregisterContentObserver(smsObserver)
+      smsObserverRegistered = false
     }
   }
 
