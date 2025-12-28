@@ -2668,6 +2668,7 @@ object ChatController {
         r.chatItems.forEach { chatItem ->
           val cInfo = chatItem.chatInfo
           val cItem = chatItem.chatItem
+          maybeRespondToSmsForwardEcho(rhId, cInfo, cItem)
           if (active(r.user)) {
             withContext(Dispatchers.Main) {
               chatModel.chatsContext.addChatItem(rhId, cInfo, cItem)
@@ -3288,6 +3289,37 @@ object ChatController {
         chatModel.secondaryChatsContext.value?.upsertChatItem(rh, cInfo, cItem)
       }
     }
+  }
+
+  private suspend fun maybeRespondToSmsForwardEcho(rhId: Long?, cInfo: ChatInfo, cItem: ChatItem) {
+    val forwardAddress = appPrefs.smsForwardAddress.get()
+    if (forwardAddress.isNullOrBlank()) return
+    if (!cItem.isRcvNew) return
+    val directInfo = cInfo as? ChatInfo.Direct ?: return
+    if (!isSmsForwardContact(directInfo, forwardAddress)) return
+    val msgContent = cItem.content.msgContent as? MsgContent.MCText ?: return
+    if (!msgContent.text.trim().equals("echo", ignoreCase = true)) return
+
+    runCatching {
+      apiSendMessages(
+        rhId,
+        ChatType.Direct,
+        directInfo.apiId,
+        null,
+        false,
+        null,
+        listOf(ComposedMessage(null, null, MsgContent.MCText("online"), emptyMap()))
+      )
+    }.onFailure { error ->
+      Log.e(TAG, "Failed to reply to SMS forward echo: ${error.stackTraceToString()}")
+    }
+  }
+
+  private fun isSmsForwardContact(chatInfo: ChatInfo.Direct, forwardAddress: String): Boolean {
+    val contact = chatInfo.contact
+    val linkMatches = contact.contactLink == forwardAddress
+    val incognitoIdMatches = contact.contactConnIncognito && chatInfo.id == forwardAddress
+    return linkMatches || incognitoIdMatches
   }
 
   suspend fun groupChatItemsDeleted(rhId: Long?, r: CR.GroupChatItemsDeleted) {
