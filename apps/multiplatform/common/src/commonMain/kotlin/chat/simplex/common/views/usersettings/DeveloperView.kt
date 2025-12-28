@@ -130,7 +130,7 @@ private fun SmsForwardAddressSetting(m: ChatModel) {
     title = stringResource(MR.strings.sms_forward_address),
     values = addressOptions,
     selection = smsForwardAddress,
-    icon = painterResource(MR.images.ic_forward),
+    icon = painterResource(MR.images.ic_forward_to_inbox),
     onSelected = { address ->
       val currentAddress = smsForwardAddress.value
       if (address != currentAddress) {

@@ -553,7 +553,7 @@ fun IncognitoIcon(incognito: Boolean) {
 @Composable
 fun SmsForwardIcon() {
   Icon(
-    painterResource(MR.images.ic_forward),
+    painterResource(MR.images.ic_forward_to_inbox),
     contentDescription = null,
     tint = MaterialTheme.colors.secondary,
     modifier = Modifier
