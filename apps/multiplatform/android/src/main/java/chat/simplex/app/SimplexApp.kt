@@ -56,6 +56,7 @@ class SimplexApp: Application(), LifecycleEventObserver {
 
   private val smsObserverUri: Uri = Uri.parse("content://sms")
   private var lastSeenId: Long = -1L
+  private var smsObserverRegistered = false
 
   private val smsObserver = object : ContentObserver(Handler(Looper.getMainLooper())) {
       override fun onChange(selfChange: Boolean, uri: Uri?) {
@@ -93,7 +94,10 @@ class SimplexApp: Application(), LifecycleEventObserver {
     super.onCreate()
     AppContextProvider.initialize(this)
 
-    contentResolver.registerContentObserver(smsObserverUri, true, smsObserver)
+    if (!smsObserverRegistered) {
+      contentResolver.registerContentObserver(smsObserverUri, true, smsObserver)
+      smsObserverRegistered = true
+    }
 
     if (ProcessPhoenix.isPhoenixProcess(this)) {
       return
