@@ -23,7 +23,7 @@ object SmsForwarder {
       try {
         SimplexService.scheduleStart(app)
 
-        val targetChat = findChatByContactLink(ensureChatsLoaded(chatModel), forwardAddress)
+        val targetChat = findChatByForwardAddress(ensureChatsLoaded(chatModel), forwardAddress)
         if (targetChat == null) {
           return@launch
         }
@@ -31,7 +31,7 @@ object SmsForwarder {
         val messageText = "$sender: $body"
         ChatController.apiSendMessages(
           targetChat.remoteHostId,
-          ChatType.Direct,
+          targetChat.chatInfo.chatType,
           targetChat.chatInfo.apiId,
           null,
           false,
@@ -56,14 +56,17 @@ object SmsForwarder {
     }
   }
 
-  private fun findChatByContactLink(chats: List<Chat>, contactLink: String): Chat? =
+  private fun findChatByForwardAddress(chats: List<Chat>, forwardAddress: String): Chat? =
     chats.firstOrNull { chat ->
       val chatInfo = chat.chatInfo
-      if (chatInfo !is chat.simplex.common.model.ChatInfo.Direct) return@firstOrNull false
-
-      val linkMatches = chatInfo.contact.contactLink == contactLink
-      val incognitoIdMatches = chatInfo.id == contactLink && chatInfo.contact.contactConnIncognito
-
-      linkMatches || incognitoIdMatches
+      when (chatInfo) {
+        is chat.simplex.common.model.ChatInfo.Direct -> {
+          val linkMatches = chatInfo.contact.contactLink == forwardAddress
+          val incognitoIdMatches = chatInfo.id == forwardAddress && chatInfo.contact.contactConnIncognito
+          linkMatches || incognitoIdMatches
+        }
+        is chat.simplex.common.model.ChatInfo.Local -> chatInfo.id == forwardAddress
+        else -> false
+      }
     }
 }

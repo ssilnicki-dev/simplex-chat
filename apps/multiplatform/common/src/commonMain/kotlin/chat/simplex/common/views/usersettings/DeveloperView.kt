@@ -106,15 +106,20 @@ private fun SmsForwardAddressSetting(m: ChatModel) {
     m.chats.value?.forEach { chat ->
       val directChat = chat.chatInfo as? ChatInfo.Direct
       val contact = directChat?.contact
-      val contactLink = contact?.contactLink
-      val optionAddress = when {
-        !contactLink.isNullOrBlank() -> contactLink
-        contact?.contactConnIncognito == true -> directChat.id
-        else -> null
-      }
-      val displayName = contact?.displayName
-      if (!optionAddress.isNullOrBlank() && displayName != null && displayName !in excludedContactNames) {
-        options.add(optionAddress to displayName)
+      if (contact != null) {
+        val contactLink = contact.contactLink
+        val optionAddress = when {
+          !contactLink.isNullOrBlank() -> contactLink
+          contact.contactConnIncognito -> directChat.id
+          else -> null
+        }
+        val displayName = contact.displayName
+        if (!optionAddress.isNullOrBlank() && displayName !in excludedContactNames) {
+          options.add(optionAddress to displayName)
+        }
+      } else if (chat.chatInfo is ChatInfo.Local) {
+        val localInfo = chat.chatInfo as ChatInfo.Local
+        options.add(localInfo.id to localInfo.displayName)
       }
     }
 
