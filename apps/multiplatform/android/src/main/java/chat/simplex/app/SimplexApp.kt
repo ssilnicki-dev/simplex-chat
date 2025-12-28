@@ -44,6 +44,7 @@ import android.content.pm.PackageManager
 import android.Manifest
 import androidx.core.content.ContextCompat
 import android.view.WindowManager
+import chat.simplex.res.MR
 
 const val TAG = "SIMPLEX"
 
