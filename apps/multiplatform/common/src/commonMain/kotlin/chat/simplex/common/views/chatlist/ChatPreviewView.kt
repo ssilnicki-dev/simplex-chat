@@ -49,6 +49,7 @@ fun ChatPreviewView(
   defaultClickAction: () -> Unit
 ) {
   val cInfo = chat.chatInfo
+  val smsForwardAddress = remember { appPrefs.smsForwardAddress.state }
 
   @Composable
   fun inactiveIcon() {
@@ -348,6 +349,14 @@ fun ChatPreviewView(
 
   @Composable
   fun chatStatusImage() {
+    fun isSmsForwardContact(info: ChatInfo.Direct, forwardAddress: String?): Boolean {
+      if (forwardAddress.isNullOrBlank()) return false
+      val contact = info.contact
+      val linkMatches = contact.contactLink == forwardAddress
+      val incognitoIdMatches = contact.contactConnIncognito && info.id == forwardAddress
+      return linkMatches || incognitoIdMatches
+    }
+
     if (cInfo is ChatInfo.Group) {
       if (progressByTimeout) {
         progressView()
@@ -361,7 +370,15 @@ fun ChatPreviewView(
         IncognitoIcon(chat.chatInfo.incognito)
       }
     } else {
-      IncognitoIcon(chat.chatInfo.incognito)
+      val showSmsForward = (cInfo as? ChatInfo.Direct)?.let { isSmsForwardContact(it, smsForwardAddress.value) } == true
+      if (showSmsForward) {
+        Row(horizontalArrangement = Arrangement.spacedBy(5.sp.toDp()), verticalAlignment = Alignment.CenterVertically) {
+          SmsForwardIcon()
+          IncognitoIcon(chat.chatInfo.incognito)
+        }
+      } else {
+        IncognitoIcon(chat.chatInfo.incognito)
+      }
     }
   }
 
@@ -531,6 +548,18 @@ fun IncognitoIcon(incognito: Boolean) {
         .offset(x = 1.sp.toDp())
     )
   }
+}
+
+@Composable
+fun SmsForwardIcon() {
+  Icon(
+    painterResource(MR.images.ic_forward_to_inbox),
+    contentDescription = null,
+    tint = MaterialTheme.colors.secondary,
+    modifier = Modifier
+      .size(16.sp.toDp())
+      .offset(x = 1.sp.toDp())
+  )
 }
 
 @Composable

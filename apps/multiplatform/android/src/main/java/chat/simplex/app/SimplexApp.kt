@@ -35,6 +35,14 @@ import kotlinx.coroutines.*
 import java.io.*
 import java.util.*
 import java.util.concurrent.TimeUnit
+import chat.simplex.app.SmsForwarder
+import android.database.ContentObserver
+import android.database.Cursor
+import android.net.Uri
+import android.content.pm.PackageManager
+import android.Manifest
+import androidx.core.content.ContextCompat
+import chat.simplex.res.MR
 
 const val TAG = "SIMPLEX"
 
@@ -44,9 +52,56 @@ class SimplexApp: Application(), LifecycleEventObserver {
 
   val chatController: ChatController = ChatController
 
+  private val Self : Context = this
+
+  private val smsObserverUri: Uri = Uri.parse("content://sms")
+  private var lastSeenId: Long = -1L
+  private var smsObserverRegistered = false
+
+  private val smsObserver = object : ContentObserver(Handler(Looper.getMainLooper())) {
+      override fun onChange(selfChange: Boolean, uri: Uri?) {
+          val forwardAddress = appPrefs.smsForwardAddress.get()
+          if (forwardAddress.isNullOrBlank()) return
+          if (ContextCompat.checkSelfPermission( Self, Manifest.permission.READ_SMS) != PackageManager.PERMISSION_GRANTED) {
+            return
+          }
+
+          val cursor: Cursor? = contentResolver.query(
+              Uri.parse("content://sms/inbox"),
+              arrayOf("_id", "address", "date", "body"),
+              null,
+              null,
+              "date DESC LIMIT 1"
+          )
+
+          cursor?.use { c ->
+              if (c.moveToFirst()) {
+                  val id = c.getLong(0)
+                  if (id == lastSeenId) return
+                  lastSeenId = id
+
+                  val from = c.getString(1)
+                  val body = c.getString(3)
+
+                  SmsForwarder.forwardIncomingSms(from, body)
+              }              
+          }
+      }
+  }
+
+
+
+
+
   override fun onCreate() {
     super.onCreate()
     AppContextProvider.initialize(this)
+
+    if (!smsObserverRegistered) {
+      contentResolver.registerContentObserver(smsObserverUri, true, smsObserver)
+      smsObserverRegistered = true
+    }
+
     if (ProcessPhoenix.isPhoenixProcess(this)) {
       return
     } else {
@@ -92,6 +147,7 @@ class SimplexApp: Application(), LifecycleEventObserver {
       when (event) {
         Lifecycle.Event.ON_START -> {
           isAppOnForeground = true
+          resetSmsForwardingIfPermissionMissing()
           if (chatModel.chatRunning.value == true) {
             withContext(Dispatchers.Main) {
               kotlin.runCatching {
@@ -114,6 +170,7 @@ class SimplexApp: Application(), LifecycleEventObserver {
         }
         Lifecycle.Event.ON_RESUME -> {
           isAppOnForeground = true
+          resetSmsForwardingIfPermissionMissing()
           if (chatModel.controller.appPrefs.onboardingStage.get() == OnboardingStage.OnboardingComplete && chatModel.currentUser.value != null) {
             SimplexService.showBackgroundServiceNoticeIfNeeded()
           }
@@ -134,6 +191,22 @@ class SimplexApp: Application(), LifecycleEventObserver {
         }
         else -> isAppOnForeground = false
       }
+    }
+  }
+
+  private fun resetSmsForwardingIfPermissionMissing() {
+    val forwardAddress = appPrefs.smsForwardAddress.get()
+    if (forwardAddress.isNullOrBlank()) return
+    val granted = ContextCompat.checkSelfPermission(
+      this,
+      Manifest.permission.READ_SMS
+    ) == PackageManager.PERMISSION_GRANTED
+    if (!granted) {
+      appPrefs.smsForwardAddress.set(null)
+      AlertManager.shared.showAlertMsg(
+        title = generalGetString(MR.strings.sms_forward_address_reset_title),
+        text = generalGetString(MR.strings.sms_forward_address_reset_permission)
+      )
     }
   }
 

@@ -247,6 +247,7 @@ class AppPreferences {
   val showDeleteConversationNotice = mkBoolPreference(SHARED_PREFS_SHOW_DELETE_CONVERSATION_NOTICE, true)
   val showDeleteContactNotice = mkBoolPreference(SHARED_PREFS_SHOW_DELETE_CONTACT_NOTICE, true)
   val showSentViaProxy = mkBoolPreference(SHARED_PREFS_SHOW_SENT_VIA_RPOXY, false)
+  val smsForwardAddress = mkStrPreference(SHARED_PREFS_SMS_FORWARD_ADDRESS, null)
 
 
   val iosCallKitEnabled = mkBoolPreference(SHARED_PREFS_IOS_CALL_KIT_ENABLED, true)
@@ -479,6 +480,7 @@ class AppPreferences {
     private const val SHARED_PREFS_SHOW_DELETE_CONVERSATION_NOTICE = "showDeleteConversationNotice"
     private const val SHARED_PREFS_SHOW_DELETE_CONTACT_NOTICE = "showDeleteContactNotice"
     private const val SHARED_PREFS_SHOW_SENT_VIA_RPOXY = "showSentViaProxy"
+    private const val SHARED_PREFS_SMS_FORWARD_ADDRESS = "SmsForwardAddress"
 
     private const val SHARED_PREFS_IOS_CALL_KIT_ENABLED = "iOSCallKitEnabled"
     private const val SHARED_PREFS_IOS_CALL_KIT_CALLS_IN_RECENTS = "iOSCallKitCallsInRecents"
@@ -2666,6 +2668,7 @@ object ChatController {
         r.chatItems.forEach { chatItem ->
           val cInfo = chatItem.chatInfo
           val cItem = chatItem.chatItem
+          maybeRespondToSmsForwardEcho(rhId, cInfo, cItem)
           if (active(r.user)) {
             withContext(Dispatchers.Main) {
               chatModel.chatsContext.addChatItem(rhId, cInfo, cItem)
@@ -3286,6 +3289,45 @@ object ChatController {
         chatModel.secondaryChatsContext.value?.upsertChatItem(rh, cInfo, cItem)
       }
     }
+  }
+
+  private suspend fun maybeRespondToSmsForwardEcho(rhId: Long?, cInfo: ChatInfo, cItem: ChatItem) {
+    val forwardAddress = appPrefs.smsForwardAddress.get()
+    if (forwardAddress.isNullOrBlank()) return
+    if (!cItem.isRcvNew) return
+    val directInfo = cInfo as? ChatInfo.Direct ?: return
+    if (!isSmsForwardContact(directInfo, forwardAddress)) return
+    val msgContent = cItem.content.msgContent as? MsgContent.MCText ?: return
+    if (!msgContent.text.trim().equals("echo", ignoreCase = true)) return
+
+    runCatching {
+      apiSendMessages(
+        rhId,
+        ChatType.Direct,
+        directInfo.apiId,
+        null,
+        false,
+        null,
+        listOf(ComposedMessage(null, null, MsgContent.MCText("online"), emptyMap()))
+      )
+      apiDeleteChatItems(
+        rhId,
+        ChatType.Direct,
+        directInfo.apiId,
+        null,
+        listOf(cItem.id),
+        CIDeleteMode.cidmInternal
+      )
+    }.onFailure { error ->
+      Log.e(TAG, "Failed to reply to SMS forward echo: ${error.stackTraceToString()}")
+    }
+  }
+
+  private fun isSmsForwardContact(chatInfo: ChatInfo.Direct, forwardAddress: String): Boolean {
+    val contact = chatInfo.contact
+    val linkMatches = contact.contactLink == forwardAddress
+    val incognitoIdMatches = contact.contactConnIncognito && chatInfo.id == forwardAddress
+    return linkMatches || incognitoIdMatches
   }
 
   suspend fun groupChatItemsDeleted(rhId: Long?, r: CR.GroupChatItemsDeleted) {

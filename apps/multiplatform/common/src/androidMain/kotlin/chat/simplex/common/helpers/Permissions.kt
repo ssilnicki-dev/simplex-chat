@@ -12,6 +12,7 @@ fun Context.openAppSettingsInSystem() {
   Intent().apply {
     action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
     data = Uri.parse("package:${androidAppContext.packageName}")
+    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     try {
       startActivity(this)
     } catch (e: ActivityNotFoundException) {
